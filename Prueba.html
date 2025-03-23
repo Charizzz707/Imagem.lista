@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Device Info</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .img-list { display: flex; flex-wrap: wrap; }
+        .img-item { margin: 10px; text-align: center; width: 300px; }
+        .img-item img { max-width: 100%; height: auto; }
+        .img-info { margin-top: 10px; font-size: 12px; color: #555; }
+        .exif-list { margin-top: 15px; padding-left: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>Image Device Info</h1>
+
+    <input type="file" id="fileInput" webkitdirectory directory multiple accept="image/*">
+    <div class="img-list" id="imgList"></div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', e => {
+            const files = e.target.files;
+            const imgList = document.getElementById('imgList');
+            imgList.innerHTML = '';
+
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith("image/")) {
+                    const reader = new FileReader();
+
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.src = e.target.result;
+                        img.onload = () => {
+                            const item = document.createElement('div');
+                            item.classList.add('img-item');
+                            const infoDiv = document.createElement('div');
+                            infoDiv.classList.add('img-info');
+
+                            item.appendChild(img);
+                            imgList.appendChild(item);
+
+                            const { width, height } = img;
+                            const size = (file.size / 1024).toFixed(2);
+                            const sizeText = size > 1024 ? (size / 1024).toFixed(2) + ' MB' : size + ' KB';
+
+                            EXIF.getData(img, () => {
+                                const exif = EXIF.getAllTags(img);
+                                const iso = exif.ISO || "Unknown";
+                                const fNumber = exif.FNumber || "Unknown";
+                                const shutterSpeed = exif.ShutterSpeedValue || "Unknown";
+                                const focalLength = exif.FocalLength || "Unknown";
+                                const make = exif.Make || "Unknown";
+                                const model = exif.Model || "Unknown";
+                                const dateTime = exif.DateTime || "Unknown";
+
+                                const cameraInfo = `Camera: ${make} ${model}<br>Date: ${dateTime}`;
+                                const exifInfo = `
+                                    ISO: ${iso}<br>
+                                    Aperture: f/${fNumber}<br>
+                                    Shutter Speed: 1/${Math.round(1 / shutterSpeed)} s<br>
+                                    Focal Length: ${focalLength} mm
+                                `;
+
+                                infoDiv.innerHTML = `
+                                    Resolution: ${width} x ${height}px<br>
+                                    Size: ${sizeText}<br>
+                                    ${cameraInfo}<br>
+                                    ${exifInfo}
+                                `;
+                                item.appendChild(infoDiv);
+
+                                const exifList = document.createElement('ul');
+                                exifList.classList.add('exif-list');
+                                exifList.innerHTML = `
+                                    <li><strong>ISO:</strong> ${iso}</li>
+                                    <li><strong>Aperture:</strong> f/${fNumber}</li>
+                                    <li><strong>Shutter Speed:</strong> 1/${Math.round(1 / shutterSpeed)} s</li>
+                                    <li><strong>Focal Length:</strong> ${focalLength} mm</li>
+                                `;
+                                item.appendChild(exifList);
+                            });
+                        };
+                    };
+
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
